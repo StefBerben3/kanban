@@ -55,6 +55,28 @@ app.get("/cards",(req,res)=>{
     })
 })
 
+app.post('/cards', (req, res) => {
+    const { title, description, priority, column_name } = req.body;
+  
+    const newCard = {
+      title,
+      description,
+      priority,
+      column_name,
+    };
+  
+    db.query('INSERT INTO kanban_cards SET ?', newCard, (err, result) => {
+      if (err) {
+        console.error('Error inserting card into the database:', err);
+        res.status(500).json({ error: 'Error inserting card into the database' });
+      } else {
+        newCard.id = result.insertId;
+        console.log('Card inserted into the database');
+        res.status(201).json(newCard);
+      }
+    });
+  });
+
 // app.get('/cards', (req, res) => {
 //     db.query("select  *  from  kanban_cards", (err, rows) => {
 //       if (err) {

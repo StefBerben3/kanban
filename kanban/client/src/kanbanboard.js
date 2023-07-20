@@ -74,7 +74,7 @@ const KanbanBoard = () => {
     e.dataTransfer.setData('text/plain', taskId);
   };
 
-  const handleCreateCard = (column) => {
+  const handleCreateCard = async (column) => {
     const priority = prompt('Enter Priority (1-5):');
     if (priority === null) return;
     const title = prompt('Enter Title:');
@@ -83,16 +83,18 @@ const KanbanBoard = () => {
     if (description === null) return;
 
     const newCard = {
-      id: Date.now(),
       title,
       description,
       priority: parseInt(priority),
-      column,
+      column_name: column,
     };
 
-
-
-    setTasks([...tasks, newCard]);
+    try {
+      const response = await axios.post('http://localhost:3001/cards', newCard);
+      setTasks([...tasks, response.data]);
+    } catch (error) {
+      console.error('Error creating card:', error);
+    }
   };
 
   const handleDeleteCard = (taskId) => {
@@ -101,31 +103,32 @@ const KanbanBoard = () => {
   };
 
   return (
+    <div className="container mx-auto py-8">
     <div className="grid grid-cols-3 gap-4">
-    {['To Do', 'In Progress', 'Done'].map((column) => (
-      <div key={column}>
-        <h2 className="text-xl font-bold mb-4">{column}</h2>
-        <div
-          className="bg-gray-100 p-4 rounded shadow space-y-4"
-          onDrop={(e) => handleDrop(e, column)}
-          onDragOver={(e) => e.preventDefault()}
-        >
-          {tasks
-            .filter((task) => task.column_name === column)
-            .map((task) => (
-              <div
-                key={task.id}
-                className="bg-white p-4 rounded shadow cursor-pointer flex items-center justify-between"
-                draggable
-                onDragStart={(e) => handleDragStart(e, task.id.toString())}
-                onClick={() => handleOpenModal(task)}
-              >
-                <div>
-                  {task.title} - Priority: {task.priority}
-                </div>
-                <button onClick={() => handleDeleteCard(task.id)} className="text-red-500">
-                  <i className="element"></i>
-                </button>
+      {['To Do', 'In Progress', 'Done'].map((column) => (
+        <div key={column}>
+          <h2 className="text-xl font-bold mb-4">{column}</h2>
+          <div
+            className="bg-gray-100 p-4 rounded shadow space-y-4"
+            onDrop={(e) => handleDrop(e, column)}
+            onDragOver={(e) => e.preventDefault()}
+          >
+            {tasks
+              .filter((task) => task.column_name === column)
+              .map((task) => (
+                <div
+                  key={task.id}
+                  className="bg-white p-4 rounded shadow cursor-pointer flex items-center justify-between"
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, task.id.toString())}
+                  onClick={() => handleOpenModal(task)}
+                >
+                  <div>
+                    {task.title} - Priority: {task.priority}
+                  </div>
+                  <button onClick={() => handleDeleteCard(task.id)} className="text-red-500">
+                    <i className="element"></i>
+                  </button>
               </div>
             ))}
         </div>
@@ -138,7 +141,7 @@ const KanbanBoard = () => {
           </div>
           
         ))}
-        
+        </div>
       
       {selectedCard && (
         <div className='modal-overlay'>
