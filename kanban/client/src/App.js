@@ -3,20 +3,6 @@ import KanbanBoard from './kanbanboard';
 
 function App(){
 
-  // const [backendData,  setBackendData]  =  useState({})
-
-  // useEffect(() => {
-  //   fetch("/api")
-  //     .then((response) => response.json())
-  //     .then((data) => {
-  //       setBackendData(data);
-  //     })
-  //     .catch((error) => {
-  //       console.error("Fout bij het ophalen van gegevens: ", error);
-  //     });
-  // }, []);
-  
-
  return  (
    <div>
   <header className="bg-blue-500 py-4">
