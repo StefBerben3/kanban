@@ -4,21 +4,44 @@ import axios from "axios";
 
 const KanbanBoard = () => {
   const [tasks, setCards] = useState([]);
-
-  useEffect(() => {
-    fetchCards();
-  });
-
-  const fetchCards = async () => {
-    const response = await axios.get("http://localhost:3001/cards");
-    setCards(response.data);
-  };
-
+  const [ws, setWebSocket] = useState(null);
   const [editingCard, setEditCard] = useState(null);
   const [editedTitle, setEditTitle] = useState("");
   const [editedDescription, setEditDescription] = useState("");
   const [editedPriority, setEditPriority] = useState(1);
   const [selectedCard, setSelectedCard] = useState(null);
+  
+  useEffect(() => {
+    const socket = new WebSocket("ws://localhost:3001");
+
+    socket.onopen = () => {
+      console.log("WebSocket connection opened");
+      setWebSocket(socket);
+    };
+
+    socket.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      handleWebSocketMessage(message);
+    };
+
+    socket.onclose = () => {
+      console.log("WebSocket connection closed");
+      setWebSocket(null);
+    };
+
+    return () => {
+      socket.close();
+    };
+  }, []);
+
+  useEffect(() => {
+    fetchCards();
+  }, []);
+
+  const fetchCards = async () => {
+    const response = await axios.get("http://localhost:3001/cards");
+    setCards(response.data);
+  };
 
   const openModal = (card) => {
     setSelectedCard(card);
@@ -62,7 +85,7 @@ const KanbanBoard = () => {
   };
 
   const startDrag = (e, taskId) => {
-    e.dataTransfer.setData("text/plain", taskId);
+    e.dataTransfer.setData("text/plain", taskId.toString());
   };
 
   const createCard = async (column) => {
@@ -79,16 +102,46 @@ const KanbanBoard = () => {
       priority: parseInt(priority),
       column_name: column,
     };
+
+    sendWebSocketMessage({ type: "NEW_CARD", card: newCard });
+
     const response = await axios.post("http://localhost:3001/cards", newCard);
     setCards([...tasks, response.data]);
   };
 
-  const deleteCard = async (taskId) => {
-    const updatedTasks = tasks.map((task) =>
-      task.id === taskId ? { ...task, deleted: 1 } : task
-    );
-    setCards(updatedTasks);
-    await axios.patch(`http://localhost:3001/cards/${taskId}`, { deleted: 1 });
+  const sendWebSocketMessage = (message) => {
+
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(message));
+    } else {
+      console.log("WebSocket connection is not open.");
+    }
+  };
+
+  const handleWebSocketMessage = (message) => {
+    if (message.type === "NEW_CARD") {
+
+      setCards((prevCards) => [...prevCards, message.card]);
+    } else if (message.type === "DELETE_CARD") {
+
+      setCards((prevCards) =>
+        prevCards.filter((card) => card.id !== message.cardId)
+      );
+    }
+  };
+
+  const deleteCard = async (cardId) => {
+    try {
+      await axios.patch(`http://localhost:3001/cards/${cardId}`, {
+        deleted: 1,
+      });
+
+
+      sendWebSocketMessage({ type: "DELETE_CARD", cardId });
+      setCards((prevCards) => prevCards.filter((card) => card.id !== cardId));
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const updateCardInDatabase = async (updatedCard) => {
@@ -107,33 +160,26 @@ const KanbanBoard = () => {
             <div
               className="bg-gray-100 p-4 rounded shadow space-y-4"
               onDrop={(e) => dropCards(e, column)}
-              onDragOver={(e) => e.preventDefault()}
-            >
+              onDragOver={(e) => e.preventDefault()}>
               {tasks
                 .filter((task) => task.column_name === column)
                 .map((task) => (
-                  <div
-                    key={task.id}
-                    className="bg-white p-4 rounded shadow cursor-pointer flex items-center justify-between"
-                    draggable
-                    onDragStart={(e) => startDrag(e, task.id.toString())}
-                    onClick={() => openModal(task)}
-                  >
-                    <div>
-                      {task.title} - Priority: {task.priority}
+                  <div key={task.id}>
+                    <div
+                      className="bg-white p-4 rounded shadow cursor-pointer flex items-center justify-between"
+                      draggable
+                      onDragStart={(e) => startDrag(e, task.id)}
+                      onClick={() => openModal(task)}>
+                      <div>
+                        {task.title} - Priority: {task.priority}
+                      </div>
                     </div>
-                    <button
-                      onClick={() => deleteCard(task.id)}
-                      className="text-red-500"
-                    ></button>
                   </div>
                 ))}
             </div>
             <button
               onClick={() => createCard(column)}
-              className="mt-4 px-4 py-2 bg-blue-500 text-white rounded shadow hover:bg-blue-600"
-            >
-              Create New Card
+              className="mt-4 px-4 py-2 bg-blue-500 text-white rounded shadow hover:bg-blue-600">Create New Card
             </button>
           </div>
         ))}

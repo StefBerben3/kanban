@@ -1,0 +1,60 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* App.css */
+
+.App {
+    text-align: center;
+    padding: 20px;
+  }
+  
+  .kanban-container {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+  }
+  
+  .column {
+    flex: 1;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px;
+    background-color: #f6f6f6;
+  }
+  
+  .column h2 {
+    font-size: 1.4rem;
+    margin-bottom: 10px;
+    color: #333;
+  }
+  
+  .task {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .task:hover {
+    background-color: #f9f9f9;
+  }
+  
+  /* Add some color variations for different task statuses */
+  .task.todo {
+    border-left: 4px solid #3498db;
+  }
+  
+  .task.in-progress {
+    border-left: 4px solid #f39c12;
+  }
+  
+  .task.done {
+    border-left: 4px solid #27ae60;
+  }
+  
+  
