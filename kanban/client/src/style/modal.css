@@ -2,6 +2,7 @@
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 
+
 .modal-overlay {
     display: flex;
     justify-content: center;
@@ -32,30 +33,20 @@
   }
   
   .modal input,
-  .modal textarea {
-    width: 100%;
-    padding: 8px;
-    margin-bottom: 16px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-  }
-  
-  .modal button {
-    background-color: #0268ec;
-    color: white;
-    padding: 8px 16px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    margin-right: 8px;
-    margin-top: 8px;
-  }
-  
-  .modal button:last-child {
-    margin-left: 8px;
-  }
-  
-  .modal button:hover {
-    background-color: #686767;
-  }
-  
+.modal textarea {
+  padding: 8px;
+  margin-bottom: 0.5rem;
+  background-color: rgba(173, 172, 172, 0.192);
+  border-radius: 5%;
+  @apply block w-full p-2 mb-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.button-group {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
