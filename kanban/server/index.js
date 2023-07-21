@@ -92,10 +92,8 @@ app.post("/cards", (req, res) => {
       console.error(err);
     } else {
       newCard.id = result.insertId;
+      broadcastMessage({ type: "NEW_CARD", card: newCard });
+      res.status(201).json(newCard);
     }
   });
-
-  broadcastMessage({ type: "NEW_CARD", card: newCard });
-
-  res.status(201).json(newCard);
 });
