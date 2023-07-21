@@ -2,6 +2,7 @@
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 
+
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -52,4 +53,17 @@
 .modal textarea {
   padding: 8px;
   margin-bottom: 0.5rem;
+  background-color: rgba(173, 172, 172, 0.192);
+  border-radius: 5%;
+  @apply block w-full p-2 mb-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.button-group {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
 }

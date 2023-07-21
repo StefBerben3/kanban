@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import "./style/modal.css";
 import axios from "axios";
+import { DragDropContext } from "react-beautiful-dnd";
+import Modal from "./modal";
+import Column from "./Column";
 
 const KanbanBoard = () => {
   const [tasks, setCards] = useState([]);
@@ -10,7 +13,14 @@ const KanbanBoard = () => {
   const [editedDescription, setEditDescription] = useState("");
   const [editedPriority, setEditPriority] = useState(1);
   const [selectedCard, setSelectedCard] = useState(null);
-  
+
+  const reorder = (list, startIndex, endIndex) => {
+    const result = Array.from(list);
+    const [removed] = result.splice(startIndex, 1);
+    result.splice(endIndex, 0, removed);
+    return result;
+  };
+
   useEffect(() => {
     const socket = new WebSocket("ws://localhost:3001");
 
@@ -75,19 +85,6 @@ const KanbanBoard = () => {
     updateCardInDatabase(updatedCard);
   };
 
-  const dropCards = (e, targetColumn) => {
-    e.preventDefault();
-    const taskId = e.dataTransfer.getData("text/plain");
-    const updatedTasks = tasks.map((task) =>
-      task.id.toString() === taskId ? { ...task, column: targetColumn } : task
-    );
-    setCards(updatedTasks);
-  };
-
-  const startDrag = (e, taskId) => {
-    e.dataTransfer.setData("text/plain", taskId.toString());
-  };
-
   const createCard = async (column) => {
     const priority = prompt("Enter Priority (1-5):");
     if (priority === null) return;
@@ -110,7 +107,6 @@ const KanbanBoard = () => {
   };
 
   const sendWebSocketMessage = (message) => {
-
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(message));
     } else {
@@ -120,10 +116,8 @@ const KanbanBoard = () => {
 
   const handleWebSocketMessage = (message) => {
     if (message.type === "NEW_CARD") {
-
       setCards((prevCards) => [...prevCards, message.card]);
     } else if (message.type === "DELETE_CARD") {
-
       setCards((prevCards) =>
         prevCards.filter((card) => card.id !== message.cardId)
       );
@@ -136,7 +130,6 @@ const KanbanBoard = () => {
         deleted: 1,
       });
 
-
       sendWebSocketMessage({ type: "DELETE_CARD", cardId });
       setCards((prevCards) => prevCards.filter((card) => card.id !== cardId));
     } catch (error) {
@@ -144,86 +137,66 @@ const KanbanBoard = () => {
     }
   };
 
-  const updateCardInDatabase = async (updatedCard) => {
-    await axios.put(
-      `http://localhost:3001/cards/${updatedCard.id}`,
-      updatedCard
+  const updateCardInDatabase = async (cardId, updatedCard) => {
+    try {
+      await axios.put(`http://localhost:3001/cards/${cardId}`, updatedCard);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const onDragEnd = async (result) => {
+    if (!result.destination) {
+      return;
+    }
+
+    const updatedTasks = reorder(
+      tasks,
+      result.source.index,
+      result.destination.index
     );
+
+    const draggedCard = updatedTasks[result.destination.index];
+    draggedCard.column_name = result.destination.droppableId;
+    setCards(updatedTasks);
+
+    await updateCardInDatabase(draggedCard.id, draggedCard);
   };
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="grid grid-cols-3 gap-4">
-        {["To Do", "In Progress", "Done"].map((column) => (
-          <div key={column}>
-            <h2 className="text-xl font-bold mb-4">{column}</h2>
-            <div
-              className="bg-gray-100 p-4 rounded shadow space-y-4"
-              onDrop={(e) => dropCards(e, column)}
-              onDragOver={(e) => e.preventDefault()}>
-              {tasks
-                .filter((task) => task.column_name === column)
-                .map((task) => (
-                  <div key={task.id}>
-                    <div
-                      className="bg-white p-4 rounded shadow cursor-pointer flex items-center justify-between"
-                      draggable
-                      onDragStart={(e) => startDrag(e, task.id)}
-                      onClick={() => openModal(task)}>
-                      <div>
-                        {task.title} - Priority: {task.priority}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-            </div>
-            <button
-              onClick={() => createCard(column)}
-              className="mt-4 px-4 py-2 bg-blue-500 text-white rounded shadow hover:bg-blue-600">Create New Card
-            </button>
-          </div>
-        ))}
-      </div>
-
-      {selectedCard && (
-        <div className="modal-overlay">
-          <div className="modal">
-            {editingCard ? (
-              <div>
-                <h2>Edit Card</h2>
-                <label htmlFor="title">Title:</label>{" "}
-                <input
-                  type="text"
-                  value={editedTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}/>
-                <label htmlFor="description">Description:</label>
-                <textarea
-                  value={editedDescription}
-                  onChange={(e) => setEditDescription(e.target.value)}/>
-                <label htmlFor="priority">Priority:</label>
-                <input
-                  type="number"
-                  value={editedPriority}
-                  onChange={(e) => setEditPriority(parseInt(e.target.value))}/>
-                <button onClick={updateCard}>Update</button>
-                <button onClick={() => setEditCard(null)}>Cancel</button>
-              </div>
-            ) : (
-              <div>
-                <h2>Task: {selectedCard.title}</h2>
-                <p>Priority: {selectedCard.priority}</p>
-                <p>Description: {selectedCard.description}</p>
-                <button onClick={() => editCard(selectedCard)}>Edit</button>
-                <button onClick={() => deleteCard(selectedCard.id)}>
-                  Delete
-                </button>
-                <button onClick={closeModal}>Close</button>
-              </div>
-            )}
-          </div>
+    <DragDropContext onDragEnd={onDragEnd}>
+      <div className="container mx-auto py-8">
+        <div className="grid grid-cols-3 gap-4">
+          {["To Do", "In Progress", "Done"].map((column) => (
+            <Column
+              key={column}
+              column={column}
+              tasks={tasks}
+              createCard={createCard}
+              openModal={openModal}
+            />
+          ))}
         </div>
-      )}
-    </div>
+
+        {selectedCard && (
+          <Modal
+            editingCard={editingCard}
+            editedTitle={editedTitle}
+            editedDescription={editedDescription}
+            editedPriority={editedPriority}
+            selectedCard={selectedCard}
+            setEditTitle={setEditTitle}
+            setEditDescription={setEditDescription}
+            setEditPriority={setEditPriority}
+            updateCard={updateCard}
+            setEditCard={setEditCard}
+            editCard={editCard}
+            deleteCard={deleteCard}
+            closeModal={closeModal}
+          />
+        )}
+      </div>
+    </DragDropContext>
   );
 };
 
